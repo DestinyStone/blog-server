@@ -26,6 +26,7 @@ import com.blog.model.vo.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import kotlin.OptIn;
 import lombok.SneakyThrows;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
@@ -84,12 +85,19 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         List<ArticleCardDTO> articleCardDTOs = articleMapper.listTopAndFeaturedArticles();
         if (articleCardDTOs.size() == 0) {
             return new TopAndFeaturedArticlesDTO();
-        } else if (articleCardDTOs.size() > 3) {
-            articleCardDTOs = articleCardDTOs.subList(0, 3);
         }
+
+        Optional<ArticleCardDTO> topArticleData = articleCardDTOs.stream()
+                .filter(item -> Objects.equals(item.getIsTop(), 1))
+                .findFirst();
         TopAndFeaturedArticlesDTO topAndFeaturedArticlesDTO = new TopAndFeaturedArticlesDTO();
-        topAndFeaturedArticlesDTO.setTopArticle(articleCardDTOs.get(0));
-        topAndFeaturedArticlesDTO.setFeaturedArticles(articleCardDTOs);
+        topAndFeaturedArticlesDTO.setTopArticle(topArticleData.orElse(articleCardDTOs.get(0)));
+
+        List<ArticleCardDTO> featuredList = articleCardDTOs.stream()
+                .filter(item -> Objects.equals(item.getIsFeatured(), 1))
+                .limit(4)
+                .collect(Collectors.toList());
+        topAndFeaturedArticlesDTO.setFeaturedArticles(featuredList);
         return topAndFeaturedArticlesDTO;
     }
 
